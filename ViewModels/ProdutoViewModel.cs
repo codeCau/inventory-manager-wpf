@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using ControleEstoqueWPF.Data;
@@ -17,6 +18,7 @@ namespace ControleEstoqueWPF.ViewModels
     {
         private readonly AppDbContext _context;
         private List<Produto> _todosProdutos = new();
+        private ContentPresenter? _dialogPresenter; // Host para o ContentDialog
 
         [ObservableProperty]
         private ObservableCollection<Produto> _produtos = new();
@@ -52,7 +54,6 @@ namespace ControleEstoqueWPF.ViewModels
         [Range(0, 1000000, ErrorMessage = "A quantidade de estoque não pode ser negativa.")]
         private int _quantidadeEstoque = 0;
 
-        // Filtros e Busca
         [ObservableProperty]
         private string _termoPesquisa = string.Empty;
 
@@ -71,7 +72,6 @@ namespace ControleEstoqueWPF.ViewModels
         [ObservableProperty]
         private int _totalExcedentes;
 
-        // Alertas e Feedback
         [ObservableProperty]
         private bool _isInfoBarOpen;
 
@@ -92,38 +92,30 @@ namespace ControleEstoqueWPF.ViewModels
             _context = context;
         }
 
-        partial void OnTermoPesquisaChanged(string value)
+        // Método chamado pelo Code-Behind para injetar o Host do Dialog
+        public void DefinirDialogPresenter(ContentPresenter presenter)
         {
-            AplicarFiltros();
+            _dialogPresenter = presenter;
         }
 
-        partial void OnFiltroStatusChanged(string value)
-        {
-            AplicarFiltros();
-        }
+        partial void OnTermoPesquisaChanged(string value) => AplicarFiltros();
+        partial void OnFiltroStatusChanged(string value) => AplicarFiltros();
 
         [RelayCommand]
-        public void FiltrarPorStatus(string status)
-        {
-            FiltroStatus = status;
-        }
+        public void FiltrarPorStatus(string status) => FiltroStatus = status;
 
         [RelayCommand]
         public async Task CarregarProdutosAsync()
         {
             try
             {
-                _todosProdutos = await _context.Produtos
-                    .AsNoTracking()
-                    .OrderBy(p => p.Id)
-                    .ToListAsync();
-
+                _todosProdutos = await _context.Produtos.AsNoTracking().OrderBy(p => p.Id).ToListAsync();
                 AtualizarContadores();
                 AplicarFiltros();
             }
             catch (Exception ex)
             {
-                ExibirMensagem("Erro de Leitura", $"Falha ao carregar registros: {ex.Message}", InfoBarSeverity.Error);
+                ExibirMensagem("Erro", $"Falha ao carregar registros: {ex.Message}", InfoBarSeverity.Error);
             }
         }
 
@@ -131,7 +123,6 @@ namespace ControleEstoqueWPF.ViewModels
         {
             var consulta = _todosProdutos.AsEnumerable();
 
-            // Filtro por texto (Nome ou Descrição)
             if (!string.IsNullOrWhiteSpace(TermoPesquisa))
             {
                 consulta = consulta.Where(p =>
@@ -139,7 +130,6 @@ namespace ControleEstoqueWPF.ViewModels
                     (!string.IsNullOrEmpty(p.Descricao) && p.Descricao.Contains(TermoPesquisa, StringComparison.OrdinalIgnoreCase)));
             }
 
-            // Filtro por faixa de quantidade
             consulta = FiltroStatus switch
             {
                 "Critico" => consulta.Where(p => p.QuantidadeEstoque <= 5),
@@ -166,7 +156,7 @@ namespace ControleEstoqueWPF.ViewModels
 
             if (HasErrors)
             {
-                var primeiroErro = GetErrors().FirstOrDefault()?.ErrorMessage ?? "Existem campos inválidos no formulário.";
+                var primeiroErro = GetErrors().FirstOrDefault()?.ErrorMessage ?? "Campos inválidos.";
                 ExibirMensagem("Atenção", primeiroErro, InfoBarSeverity.Warning);
                 return;
             }
@@ -176,11 +166,7 @@ namespace ControleEstoqueWPF.ViewModels
                 if (IsEditing && Id > 0)
                 {
                     var produtoDb = await _context.Produtos.FindAsync(Id);
-                    if (produtoDb == null)
-                    {
-                        ExibirMensagem("Erro", "Produto não encontrado para atualização.", InfoBarSeverity.Error);
-                        return;
-                    }
+                    if (produtoDb == null) return;
 
                     produtoDb.Nome = Nome.Trim();
                     produtoDb.Descricao = Descricao?.Trim();
@@ -211,7 +197,7 @@ namespace ControleEstoqueWPF.ViewModels
             }
             catch (Exception ex)
             {
-                ExibirMensagem("Erro de Persistência", $"Falha ao salvar no banco: {ex.Message}", InfoBarSeverity.Error);
+                ExibirMensagem("Erro", $"Falha ao salvar: {ex.Message}", InfoBarSeverity.Error);
             }
         }
 
@@ -219,7 +205,6 @@ namespace ControleEstoqueWPF.ViewModels
         public void PrepararEdicao(Produto produto)
         {
             if (produto == null) return;
-
             ClearErrors();
             Id = produto.Id;
             Nome = produto.Nome;
@@ -232,7 +217,26 @@ namespace ControleEstoqueWPF.ViewModels
         [RelayCommand]
         public async Task ExcluirProdutoAsync(Produto produto)
         {
-            if (produto == null) return;
+            if (produto == null || _dialogPresenter == null) return;
+
+            // Cria e configura o modal do WPF-UI
+            var dialog = new ContentDialog(_dialogPresenter)
+            {
+                Title = "Confirmar Exclusão",
+                Content = $"Tem certeza que deseja excluir permanentemente o produto \"{produto.Nome}\"?\nEsta ação não poderá ser desfeita.",
+                PrimaryButtonText = "Sim, Excluir",
+                CloseButtonText = "Cancelar",
+                PrimaryButtonAppearance = ControlAppearance.Danger
+            };
+
+            // Aguarda a decisão do usuário
+            var result = await dialog.ShowAsync();
+            
+            // Se ele não clicou no botão primário (Sim, Excluir), cancela a operação
+            if (result != ContentDialogResult.Primary)
+            {
+                return;
+            }
 
             try
             {
@@ -242,12 +246,9 @@ namespace ControleEstoqueWPF.ViewModels
                     _context.Produtos.Remove(produtoDb);
                     await _context.SaveChangesAsync();
 
-                    if (Id == produto.Id)
-                    {
-                        LimparFormulario();
-                    }
+                    if (Id == produto.Id) LimparFormulario();
 
-                    ExibirMensagem("Excluído", $"Produto \"{produto.Nome}\" removido do estoque.", InfoBarSeverity.Success);
+                    ExibirMensagem("Excluído", $"O produto \"{produto.Nome}\" foi removido.", InfoBarSeverity.Success);
                     await CarregarProdutosAsync();
                 }
             }
@@ -271,18 +272,9 @@ namespace ControleEstoqueWPF.ViewModels
 
         private void ExibirMensagemEstoque(string acao, int quantidade)
         {
-            if (quantidade <= 5)
-            {
-                ExibirMensagem(acao, $"Estoque em estado CRÍTICO ({quantidade} un.). Reposição urgente necessária!", InfoBarSeverity.Error);
-            }
-            else if (quantidade <= 10)
-            {
-                ExibirMensagem(acao, $"Estoque em nível NORMAL ({quantidade} un.). Operação regular.", InfoBarSeverity.Success);
-            }
-            else
-            {
-                ExibirMensagem(acao, $"Estoque EXCEDENTE ({quantidade} un.). Capacidade máxima atingida.", InfoBarSeverity.Warning);
-            }
+            if (quantidade <= 5) ExibirMensagem(acao, $"Estoque CRÍTICO ({quantidade} un.).", InfoBarSeverity.Error);
+            else if (quantidade <= 10) ExibirMensagem(acao, $"Estoque NORMAL ({quantidade} un.).", InfoBarSeverity.Success);
+            else ExibirMensagem(acao, $"Estoque EXCEDENTE ({quantidade} un.).", InfoBarSeverity.Warning);
         }
 
         private void ExibirMensagem(string titulo, string mensagem, InfoBarSeverity severidade)

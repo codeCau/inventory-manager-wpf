@@ -9,6 +9,10 @@ namespace ControleEstoqueWPF
         {
             InitializeComponent();
             DataContext = viewModel;
+            
+            // Define o local onde o Modal de Confirmação será renderizado
+            viewModel.DefinirDialogPresenter(RootContentDialogPresenter);
+            
             Loaded += async (s, e) => await viewModel.CarregarProdutosAsync();
         }
     }
