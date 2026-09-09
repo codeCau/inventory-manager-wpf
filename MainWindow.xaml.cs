@@ -1,13 +1,15 @@
-using Wpf.Ui.Controls;
 using ControleEstoqueWPF.ViewModels;
+using Wpf.Ui.Controls;
 
-namespace ControleEstoqueWPF;
-
-public partial class MainWindow : FluentWindow
+namespace ControleEstoqueWPF
 {
-    public MainWindow(ProdutoViewModel viewModel)
+    public partial class MainWindow : FluentWindow
     {
-        InitializeComponent();
-        DataContext = viewModel;
+        public MainWindow(ProdutoViewModel viewModel)
+        {
+            InitializeComponent();
+            DataContext = viewModel;
+            Loaded += async (s, e) => await viewModel.CarregarProdutosAsync();
+        }
     }
 }

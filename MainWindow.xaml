@@ -7,14 +7,13 @@
         xmlns:converters="clr-namespace:ControleEstoqueWPF.Converters"
         mc:Ignorable="d"
         Title="Controle de Estoque &amp; Produtos" 
-        Height="780" Width="1100"
+        Height="850" Width="1150"
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
         <converters:EstoqueBadgeConverter x:Key="EstoqueBadgeConverter"/>
         <converters:EstoqueColorConverter x:Key="EstoqueColorConverter"/>
 
-        <!-- Estilo para realce de campos inválidos -->
         <Style TargetType="ui:TextBox" BasedOn="{StaticResource {x:Type ui:TextBox}}">
             <Style.Triggers>
                 <Trigger Property="Validation.HasError" Value="True">
@@ -30,10 +29,11 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- 1. Alerta de Notificação / Feedback de Estoque -->
+        <!-- 1. Alerta de Notificação / Feedback -->
         <ui:InfoBar Grid.Row="0"
                     IsOpen="{Binding IsInfoBarOpen, Mode=TwoWay}"
                     Title="{Binding InfoBarTitle}"
@@ -41,16 +41,16 @@
                     Severity="{Binding InfoBarSeverity}"
                     Margin="0,0,0,16" />
 
-        <!-- 2. Cabeçalho -->
+        <!-- 2. Cabeçalho Principal -->
         <StackPanel Grid.Row="1" Margin="0,0,0,16">
             <ui:TextBlock Text="📦 Gestão de Estoque &amp; Produtos" FontTypography="Title" />
-            <ui:TextBlock Text="Monitore níveis críticos, controle entradas e gerencie o catálogo em tempo real." 
+            <ui:TextBlock Text="Monitore níveis críticos, realize cadastros e filtre os itens em tempo real." 
                           FontTypography="Body" 
                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
         </StackPanel>
 
         <!-- 3. Formulário de Cadastro / Edição -->
-        <ui:Card Grid.Row="2" Margin="0,0,0,20" Padding="16">
+        <ui:Card Grid.Row="2" Margin="0,0,0,16" Padding="16">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -63,7 +63,7 @@
                     <ColumnDefinition Width="1*"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Linha 1: Nome, Preço, Quantidade -->
+                <!-- Linha 1 -->
                 <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,12">
                     <ui:TextBlock Text="Nome do Produto *" FontTypography="BodyStrong" Margin="0,0,0,4"/>
                     <ui:TextBox Text="{Binding Nome, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" 
@@ -82,16 +82,16 @@
                                 PlaceholderText="0" />
                 </StackPanel>
 
-                <!-- Linha 2: Descrição -->
+                <!-- Linha 2 -->
                 <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0,0,0,16">
                     <ui:TextBlock Text="Descrição Detalhada" FontTypography="BodyStrong" Margin="0,0,0,4"/>
                     <ui:TextBox Text="{Binding Descricao, UpdateSourceTrigger=PropertyChanged}" 
-                                PlaceholderText="Informações adicionais, especificações técnicas ou modelo..." />
+                                PlaceholderText="Especificações adicionais do produto..." />
                 </StackPanel>
 
-                <!-- Linha 3: Botões de Ação -->
+                <!-- Linha 3 -->
                 <StackPanel Grid.Row="2" Grid.ColumnSpan="3" Orientation="Horizontal" HorizontalAlignment="Right">
-                    <ui:Button Content="Limpar / Cancelar" 
+                    <ui:Button Content="Limpar Formulário" 
                                Command="{Binding LimparFormularioCommand}" 
                                Appearance="Secondary" 
                                Margin="0,0,8,0"/>
@@ -103,8 +103,48 @@
             </Grid>
         </ui:Card>
 
-        <!-- 4. Tabela de Produtos -->
-        <ui:Card Grid.Row="3" Padding="0">
+        <!-- 4. Barra de Pesquisa e Filtros de Status -->
+        <Grid Grid.Row="3" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="320"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Campo de Busca por Texto -->
+            <ui:TextBox Grid.Column="0"
+                        Text="{Binding TermoPesquisa, UpdateSourceTrigger=PropertyChanged}"
+                        PlaceholderText="Pesquisar por nome ou descrição..."
+                        Icon="{ui:SymbolIcon Symbol=Search24}"/>
+
+            <!-- Botões Rápidos de Filtro com Contadores -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                <ui:Button Content="{Binding TotalGeral, StringFormat='Todos ({0})'}"
+                           Command="{Binding FiltrarPorStatusCommand}"
+                           CommandParameter="Todos"
+                           Appearance="Secondary"
+                           Margin="0,0,6,0"/>
+
+                <ui:Button Content="{Binding TotalCriticos, StringFormat='Críticos ({0})'}"
+                           Command="{Binding FiltrarPorStatusCommand}"
+                           CommandParameter="Critico"
+                           Appearance="Danger"
+                           Margin="0,0,6,0"/>
+
+                <ui:Button Content="{Binding TotalNormais, StringFormat='Normais ({0})'}"
+                           Command="{Binding FiltrarPorStatusCommand}"
+                           CommandParameter="Normal"
+                           Appearance="Success"
+                           Margin="0,0,6,0"/>
+
+                <ui:Button Content="{Binding TotalExcedentes, StringFormat='Excedentes ({0})'}"
+                           Command="{Binding FiltrarPorStatusCommand}"
+                           CommandParameter="Excedente"
+                           Appearance="Caution"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- 5. Tabela de Produtos -->
+        <ui:Card Grid.Row="4" Padding="0">
             <DataGrid ItemsSource="{Binding Produtos}"
                       SelectedItem="{Binding ProdutoSelecionado}"
                       AutoGenerateColumns="False"
@@ -119,7 +159,6 @@
                     <DataGridTextColumn Header="Preço" Binding="{Binding Preco, StringFormat=C2}" Width="120"/>
                     <DataGridTextColumn Header="Estoque" Binding="{Binding QuantidadeEstoque}" Width="90"/>
                     
-                    <!-- Coluna de Status com Conversores -->
                     <DataGridTemplateColumn Header="Status do Estoque" Width="170">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
@@ -137,7 +176,6 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
-                    <!-- Coluna de Ações -->
                     <DataGridTemplateColumn Header="Ações" Width="140">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>

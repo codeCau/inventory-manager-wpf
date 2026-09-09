@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -15,6 +16,7 @@ namespace ControleEstoqueWPF.ViewModels
     public partial class ProdutoViewModel : ObservableValidator
     {
         private readonly AppDbContext _context;
+        private List<Produto> _todosProdutos = new();
 
         [ObservableProperty]
         private ObservableCollection<Produto> _produtos = new();
@@ -50,6 +52,26 @@ namespace ControleEstoqueWPF.ViewModels
         [Range(0, 1000000, ErrorMessage = "A quantidade de estoque não pode ser negativa.")]
         private int _quantidadeEstoque = 0;
 
+        // Filtros e Busca
+        [ObservableProperty]
+        private string _termoPesquisa = string.Empty;
+
+        [ObservableProperty]
+        private string _filtroStatus = "Todos";
+
+        [ObservableProperty]
+        private int _totalGeral;
+
+        [ObservableProperty]
+        private int _totalCriticos;
+
+        [ObservableProperty]
+        private int _totalNormais;
+
+        [ObservableProperty]
+        private int _totalExcedentes;
+
+        // Alertas e Feedback
         [ObservableProperty]
         private bool _isInfoBarOpen;
 
@@ -70,22 +92,71 @@ namespace ControleEstoqueWPF.ViewModels
             _context = context;
         }
 
+        partial void OnTermoPesquisaChanged(string value)
+        {
+            AplicarFiltros();
+        }
+
+        partial void OnFiltroStatusChanged(string value)
+        {
+            AplicarFiltros();
+        }
+
+        [RelayCommand]
+        public void FiltrarPorStatus(string status)
+        {
+            FiltroStatus = status;
+        }
+
         [RelayCommand]
         public async Task CarregarProdutosAsync()
         {
             try
             {
-                var lista = await _context.Produtos
+                _todosProdutos = await _context.Produtos
                     .AsNoTracking()
                     .OrderBy(p => p.Id)
                     .ToListAsync();
 
-                Produtos = new ObservableCollection<Produto>(lista);
+                AtualizarContadores();
+                AplicarFiltros();
             }
             catch (Exception ex)
             {
                 ExibirMensagem("Erro de Leitura", $"Falha ao carregar registros: {ex.Message}", InfoBarSeverity.Error);
             }
+        }
+
+        public void AplicarFiltros()
+        {
+            var consulta = _todosProdutos.AsEnumerable();
+
+            // Filtro por texto (Nome ou Descrição)
+            if (!string.IsNullOrWhiteSpace(TermoPesquisa))
+            {
+                consulta = consulta.Where(p =>
+                    p.Nome.Contains(TermoPesquisa, StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrEmpty(p.Descricao) && p.Descricao.Contains(TermoPesquisa, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            // Filtro por faixa de quantidade
+            consulta = FiltroStatus switch
+            {
+                "Critico" => consulta.Where(p => p.QuantidadeEstoque <= 5),
+                "Normal" => consulta.Where(p => p.QuantidadeEstoque >= 6 && p.QuantidadeEstoque <= 10),
+                "Excedente" => consulta.Where(p => p.QuantidadeEstoque > 10),
+                _ => consulta
+            };
+
+            Produtos = new ObservableCollection<Produto>(consulta);
+        }
+
+        private void AtualizarContadores()
+        {
+            TotalGeral = _todosProdutos.Count;
+            TotalCriticos = _todosProdutos.Count(p => p.QuantidadeEstoque <= 5);
+            TotalNormais = _todosProdutos.Count(p => p.QuantidadeEstoque >= 6 && p.QuantidadeEstoque <= 10);
+            TotalExcedentes = _todosProdutos.Count(p => p.QuantidadeEstoque > 10);
         }
 
         [RelayCommand]
