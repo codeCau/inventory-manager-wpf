@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -10,6 +12,7 @@ using CommunityToolkit.Mvvm.Input;
 using ControleEstoqueWPF.Data;
 using ControleEstoqueWPF.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Win32;
 using Wpf.Ui.Controls;
 
 namespace ControleEstoqueWPF.ViewModels
@@ -18,7 +21,7 @@ namespace ControleEstoqueWPF.ViewModels
     {
         private readonly AppDbContext _context;
         private List<Produto> _todosProdutos = new();
-        private ContentPresenter? _dialogPresenter; // Host para o ContentDialog
+        private ContentPresenter? _dialogPresenter;
 
         [ObservableProperty]
         private ObservableCollection<Produto> _produtos = new();
@@ -92,7 +95,6 @@ namespace ControleEstoqueWPF.ViewModels
             _context = context;
         }
 
-        // Método chamado pelo Code-Behind para injetar o Host do Dialog
         public void DefinirDialogPresenter(ContentPresenter presenter)
         {
             _dialogPresenter = presenter;
@@ -219,7 +221,6 @@ namespace ControleEstoqueWPF.ViewModels
         {
             if (produto == null || _dialogPresenter == null) return;
 
-            // Cria e configura o modal do WPF-UI
             var dialog = new ContentDialog(_dialogPresenter)
             {
                 Title = "Confirmar Exclusão",
@@ -229,14 +230,8 @@ namespace ControleEstoqueWPF.ViewModels
                 PrimaryButtonAppearance = ControlAppearance.Danger
             };
 
-            // Aguarda a decisão do usuário
             var result = await dialog.ShowAsync();
-            
-            // Se ele não clicou no botão primário (Sim, Excluir), cancela a operação
-            if (result != ContentDialogResult.Primary)
-            {
-                return;
-            }
+            if (result != ContentDialogResult.Primary) return;
 
             try
             {
@@ -259,6 +254,52 @@ namespace ControleEstoqueWPF.ViewModels
         }
 
         [RelayCommand]
+        public void ExportarCsv()
+        {
+            if (Produtos.Count == 0)
+            {
+                ExibirMensagem("Aviso", "Não há produtos na listagem para exportar.", InfoBarSeverity.Warning);
+                return;
+            }
+
+            try
+            {
+                var dialog = new SaveFileDialog
+                {
+                    Title = "Exportar Relatório de Estoque",
+                    Filter = "Arquivo CSV (*.csv)|*.csv",
+                    FileName = $"relatorio_estoque_{DateTime.Now:yyyyMMdd_HHmm}.csv"
+                };
+
+                if (dialog.ShowDialog() == true)
+                {
+                    var sb = new StringBuilder();
+                    sb.AppendLine("ID;Nome;Descrição;Preço Unitário;Quantidade;Status;Data Cadastro");
+
+                    foreach (var p in Produtos)
+                    {
+                        var status = p.QuantidadeEstoque switch
+                        {
+                            <= 5 => "Crítico (Repor)",
+                            <= 10 => "Normal",
+                            _ => "Excedente (Cheio)"
+                        };
+
+                        var linha = $"{p.Id};\"{p.Nome.Replace("\"", "\"\"")}\";\"{p.Descricao?.Replace("\"", "\"\"")}\";{p.Preco:F2};{p.QuantidadeEstoque};{status};{p.DataCadastro:dd/MM/yyyy HH:mm}";
+                        sb.AppendLine(linha);
+                    }
+
+                    File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
+                    ExibirMensagem("Exportação Concluída", $"Relatório gerado com sucesso em: {Path.GetFileName(dialog.FileName)}", InfoBarSeverity.Success);
+                }
+            }
+            catch (Exception ex)
+            {
+                ExibirMensagem("Erro na Exportação", $"Falha ao gravar arquivo: {ex.Message}", InfoBarSeverity.Error);
+            }
+        }
+
+        [RelayCommand]
         public void LimparFormulario()
         {
             ClearErrors();
@@ -272,9 +313,9 @@ namespace ControleEstoqueWPF.ViewModels
 
         private void ExibirMensagemEstoque(string acao, int quantidade)
         {
-            if (quantidade <= 5) ExibirMensagem(acao, $"Estoque CRÍTICO ({quantidade} un.).", InfoBarSeverity.Error);
-            else if (quantidade <= 10) ExibirMensagem(acao, $"Estoque NORMAL ({quantidade} un.).", InfoBarSeverity.Success);
-            else ExibirMensagem(acao, $"Estoque EXCEDENTE ({quantidade} un.).", InfoBarSeverity.Warning);
+            if (quantidade <= 5) ExibirMensagem(acao, $"Estoque CRÍTICO ({quantidade} un.). Reposição urgente necessária!", InfoBarSeverity.Error);
+            else if (quantidade <= 10) ExibirMensagem(acao, $"Estoque NORMAL ({quantidade} un.). Operação regular.", InfoBarSeverity.Success);
+            else ExibirMensagem(acao, $"Estoque EXCEDENTE ({quantidade} un.). Capacidade máxima atingida.", InfoBarSeverity.Warning);
         }
 
         private void ExibirMensagem(string titulo, string mensagem, InfoBarSeverity severidade)

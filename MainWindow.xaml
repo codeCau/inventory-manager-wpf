@@ -7,7 +7,7 @@
         xmlns:converters="clr-namespace:ControleEstoqueWPF.Converters"
         mc:Ignorable="d"
         Title="Controle de Estoque &amp; Produtos" 
-        Height="850" Width="1150"
+        Height="850" Width="1180"
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
@@ -25,7 +25,6 @@
     </Window.Resources>
 
     <Grid>
-        <!-- Conteúdo Principal da Janela -->
         <Grid Margin="24">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -85,10 +84,10 @@
                 </Grid>
             </ui:Card>
 
-            <!-- 4. Barra de Pesquisa e Filtros de Status -->
+            <!-- 4. Barra de Pesquisa, Filtros e Exportação -->
             <Grid Grid.Row="3" Margin="0,0,0,12">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="320"/>
+                    <ColumnDefinition Width="300"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
@@ -98,7 +97,13 @@
                     <ui:Button Content="{Binding TotalGeral, StringFormat='Todos ({0})'}" Command="{Binding FiltrarPorStatusCommand}" CommandParameter="Todos" Appearance="Secondary" Margin="0,0,6,0"/>
                     <ui:Button Content="{Binding TotalCriticos, StringFormat='Críticos ({0})'}" Command="{Binding FiltrarPorStatusCommand}" CommandParameter="Critico" Appearance="Danger" Margin="0,0,6,0"/>
                     <ui:Button Content="{Binding TotalNormais, StringFormat='Normais ({0})'}" Command="{Binding FiltrarPorStatusCommand}" CommandParameter="Normal" Appearance="Success" Margin="0,0,6,0"/>
-                    <ui:Button Content="{Binding TotalExcedentes, StringFormat='Excedentes ({0})'}" Command="{Binding FiltrarPorStatusCommand}" CommandParameter="Excedente" Appearance="Caution"/>
+                    <ui:Button Content="{Binding TotalExcedentes, StringFormat='Excedentes ({0})'}" Command="{Binding FiltrarPorStatusCommand}" CommandParameter="Excedente" Appearance="Caution" Margin="0,0,12,0"/>
+                    
+                    <!-- Botão Exportar CSV -->
+                    <ui:Button Content="Exportar CSV" 
+                               Command="{Binding ExportarCsvCommand}" 
+                               Appearance="Secondary" 
+                               Icon="{ui:SymbolIcon Symbol=DocumentTableSearch24}"/>
                 </StackPanel>
             </Grid>
 
@@ -134,7 +139,7 @@
             </ui:Card>
         </Grid>
 
-        <!-- HOST DO CONTENT DIALOG (Sobrepõe toda a janela) -->
+        <!-- Host do Dialog Modal -->
         <ContentPresenter x:Name="RootContentDialogPresenter" />
     </Grid>
 </ui:FluentWindow>
