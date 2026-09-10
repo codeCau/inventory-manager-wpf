@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,7 +16,7 @@ using Wpf.Ui.Controls;
 
 namespace ControleEstoqueWPF.ViewModels
 {
-    public partial class ProdutoViewModel : ObservableValidator
+    public partial class ProdutoViewModel : ObservableObject
     {
         private readonly AppDbContext _context;
         private List<Produto> _todosProdutos = new();
@@ -29,32 +28,19 @@ namespace ControleEstoqueWPF.ViewModels
         [ObservableProperty]
         private Produto? _produtoSelecionado;
 
+        [ObservableProperty]
         private int _id;
-        public int Id
-        {
-            get => _id;
-            set => SetProperty(ref _id, value);
-        }
 
         [ObservableProperty]
-        [NotifyDataErrorInfo]
-        [Required(ErrorMessage = "O nome do produto é obrigatório.")]
-        [MinLength(2, ErrorMessage = "O nome deve ter no mínimo 2 caracteres.")]
-        [MaxLength(150, ErrorMessage = "O nome não pode exceder 150 caracteres.")]
         private string _nome = string.Empty;
 
         [ObservableProperty]
-        [MaxLength(500, ErrorMessage = "A descrição não pode exceder 500 caracteres.")]
         private string? _descricao;
 
         [ObservableProperty]
-        [NotifyDataErrorInfo]
-        [Range(typeof(decimal), "0.01", "999999.99", ErrorMessage = "O preço deve ser maior que R$ 0,00.")]
-        private decimal _preco = 0.01m;
+        private decimal _preco = 0.00m;
 
         [ObservableProperty]
-        [NotifyDataErrorInfo]
-        [Range(0, 1000000, ErrorMessage = "A quantidade de estoque não pode ser negativa.")]
         private int _quantidadeEstoque = 0;
 
         [ObservableProperty]
@@ -74,6 +60,15 @@ namespace ControleEstoqueWPF.ViewModels
 
         [ObservableProperty]
         private int _totalExcedentes;
+
+        [ObservableProperty]
+        private decimal _valorTotalEstoque;
+
+        [ObservableProperty]
+        private int _quantidadeTotalItens;
+
+        [ObservableProperty]
+        private decimal _precoMedioUnitario;
 
         [ObservableProperty]
         private bool _isInfoBarOpen;
@@ -111,13 +106,18 @@ namespace ControleEstoqueWPF.ViewModels
         {
             try
             {
-                _todosProdutos = await _context.Produtos.AsNoTracking().OrderBy(p => p.Id).ToListAsync();
-                AtualizarContadores();
+                _todosProdutos = await _context.Produtos
+                    .AsNoTracking()
+                    .OrderBy(p => p.Id)
+                    .ToListAsync();
+
+                AtualizarMetricas();
                 AplicarFiltros();
             }
             catch (Exception ex)
             {
-                ExibirMensagem("Erro", $"Falha ao carregar registros: {ex.Message}", InfoBarSeverity.Error);
+                var msg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                ExibirMensagem("Erro de Leitura", $"Falha ao carregar registros: {msg}", InfoBarSeverity.Error);
             }
         }
 
@@ -143,23 +143,80 @@ namespace ControleEstoqueWPF.ViewModels
             Produtos = new ObservableCollection<Produto>(consulta);
         }
 
-        private void AtualizarContadores()
+        private void AtualizarMetricas()
         {
             TotalGeral = _todosProdutos.Count;
             TotalCriticos = _todosProdutos.Count(p => p.QuantidadeEstoque <= 5);
             TotalNormais = _todosProdutos.Count(p => p.QuantidadeEstoque >= 6 && p.QuantidadeEstoque <= 10);
             TotalExcedentes = _todosProdutos.Count(p => p.QuantidadeEstoque > 10);
+
+            QuantidadeTotalItens = _todosProdutos.Sum(p => p.QuantidadeEstoque);
+            ValorTotalEstoque = _todosProdutos.Sum(p => p.Preco * p.QuantidadeEstoque);
+            PrecoMedioUnitario = _todosProdutos.Count > 0 ? _todosProdutos.Average(p => p.Preco) : 0m;
+        }
+
+        [RelayCommand]
+        public async Task IncrementarEstoqueAsync(Produto produto)
+        {
+            if (produto == null) return;
+
+            try
+            {
+                var produtoDb = await _context.Produtos.FindAsync(produto.Id);
+                if (produtoDb != null)
+                {
+                    produtoDb.QuantidadeEstoque += 1;
+                    await _context.SaveChangesAsync();
+                    await CarregarProdutosAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                var msg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                ExibirMensagem("Erro", $"Falha ao atualizar estoque: {msg}", InfoBarSeverity.Error);
+            }
+        }
+
+        [RelayCommand]
+        public async Task DecrementarEstoqueAsync(Produto produto)
+        {
+            if (produto == null || produto.QuantidadeEstoque <= 0) return;
+
+            try
+            {
+                var produtoDb = await _context.Produtos.FindAsync(produto.Id);
+                if (produtoDb != null && produtoDb.QuantidadeEstoque > 0)
+                {
+                    produtoDb.QuantidadeEstoque -= 1;
+                    await _context.SaveChangesAsync();
+                    await CarregarProdutosAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                var msg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                ExibirMensagem("Erro", $"Falha ao decrementar estoque: {msg}", InfoBarSeverity.Error);
+            }
         }
 
         [RelayCommand]
         public async Task SalvarProdutoAsync()
         {
-            ValidateAllProperties();
-
-            if (HasErrors)
+            if (string.IsNullOrWhiteSpace(Nome))
             {
-                var primeiroErro = GetErrors().FirstOrDefault()?.ErrorMessage ?? "Campos inválidos.";
-                ExibirMensagem("Atenção", primeiroErro, InfoBarSeverity.Warning);
+                ExibirMensagem("Atenção", "O nome do produto é obrigatório.", InfoBarSeverity.Warning);
+                return;
+            }
+
+            if (Preco <= 0m)
+            {
+                ExibirMensagem("Atenção", "O preço unitário deve ser maior que R$ 0,00.", InfoBarSeverity.Warning);
+                return;
+            }
+
+            if (QuantidadeEstoque < 0)
+            {
+                ExibirMensagem("Atenção", "A quantidade em estoque não pode ser negativa.", InfoBarSeverity.Warning);
                 return;
             }
 
@@ -168,13 +225,18 @@ namespace ControleEstoqueWPF.ViewModels
                 if (IsEditing && Id > 0)
                 {
                     var produtoDb = await _context.Produtos.FindAsync(Id);
-                    if (produtoDb == null) return;
+                    if (produtoDb == null)
+                    {
+                        ExibirMensagem("Erro", "Produto não encontrado para atualização.", InfoBarSeverity.Error);
+                        return;
+                    }
 
                     produtoDb.Nome = Nome.Trim();
-                    produtoDb.Descricao = Descricao?.Trim();
+                    produtoDb.Descricao = string.IsNullOrWhiteSpace(Descricao) ? null : Descricao.Trim();
                     produtoDb.Preco = Preco;
                     produtoDb.QuantidadeEstoque = QuantidadeEstoque;
 
+                    _context.Produtos.Update(produtoDb);
                     await _context.SaveChangesAsync();
                     ExibirMensagemEstoque("Produto Atualizado", QuantidadeEstoque);
                 }
@@ -183,7 +245,7 @@ namespace ControleEstoqueWPF.ViewModels
                     var novoProduto = new Produto
                     {
                         Nome = Nome.Trim(),
-                        Descricao = Descricao?.Trim(),
+                        Descricao = string.IsNullOrWhiteSpace(Descricao) ? null : Descricao.Trim(),
                         Preco = Preco,
                         QuantidadeEstoque = QuantidadeEstoque,
                         DataCadastro = DateTime.UtcNow
@@ -199,7 +261,8 @@ namespace ControleEstoqueWPF.ViewModels
             }
             catch (Exception ex)
             {
-                ExibirMensagem("Erro", $"Falha ao salvar: {ex.Message}", InfoBarSeverity.Error);
+                var msg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                ExibirMensagem("Erro no Banco", $"Falha ao salvar: {msg}", InfoBarSeverity.Error);
             }
         }
 
@@ -207,31 +270,36 @@ namespace ControleEstoqueWPF.ViewModels
         public void PrepararEdicao(Produto produto)
         {
             if (produto == null) return;
-            ClearErrors();
+
             Id = produto.Id;
             Nome = produto.Nome;
             Descricao = produto.Descricao;
             Preco = produto.Preco;
             QuantidadeEstoque = produto.QuantidadeEstoque;
             IsEditing = true;
+
+            ExibirMensagem("Modo Edição", $"Editando: {produto.Nome} (ID: {produto.Id})", InfoBarSeverity.Informational);
         }
 
         [RelayCommand]
         public async Task ExcluirProdutoAsync(Produto produto)
         {
-            if (produto == null || _dialogPresenter == null) return;
+            if (produto == null) return;
 
-            var dialog = new ContentDialog(_dialogPresenter)
+            if (_dialogPresenter != null)
             {
-                Title = "Confirmar Exclusão",
-                Content = $"Tem certeza que deseja excluir permanentemente o produto \"{produto.Nome}\"?\nEsta ação não poderá ser desfeita.",
-                PrimaryButtonText = "Sim, Excluir",
-                CloseButtonText = "Cancelar",
-                PrimaryButtonAppearance = ControlAppearance.Danger
-            };
+                var dialog = new ContentDialog(_dialogPresenter)
+                {
+                    Title = "Confirmar Exclusão",
+                    Content = $"Deseja realmente excluir o produto \"{produto.Nome}\"?\nEsta ação é irreversível.",
+                    PrimaryButtonText = "Sim, Excluir",
+                    CloseButtonText = "Cancelar",
+                    PrimaryButtonAppearance = ControlAppearance.Danger
+                };
 
-            var result = await dialog.ShowAsync();
-            if (result != ContentDialogResult.Primary) return;
+                var result = await dialog.ShowAsync();
+                if (result != ContentDialogResult.Primary) return;
+            }
 
             try
             {
@@ -243,13 +311,14 @@ namespace ControleEstoqueWPF.ViewModels
 
                     if (Id == produto.Id) LimparFormulario();
 
-                    ExibirMensagem("Excluído", $"O produto \"{produto.Nome}\" foi removido.", InfoBarSeverity.Success);
+                    ExibirMensagem("Excluído", $"Produto \"{produto.Nome}\" removido com sucesso.", InfoBarSeverity.Success);
                     await CarregarProdutosAsync();
                 }
             }
             catch (Exception ex)
             {
-                ExibirMensagem("Erro", $"Falha ao excluir produto: {ex.Message}", InfoBarSeverity.Error);
+                var msg = ex.InnerException != null ? ex.InnerException.Message : ex.Message;
+                ExibirMensagem("Erro", $"Falha ao excluir produto: {msg}", InfoBarSeverity.Error);
             }
         }
 
@@ -290,7 +359,7 @@ namespace ControleEstoqueWPF.ViewModels
                     }
 
                     File.WriteAllText(dialog.FileName, sb.ToString(), Encoding.UTF8);
-                    ExibirMensagem("Exportação Concluída", $"Relatório gerado com sucesso em: {Path.GetFileName(dialog.FileName)}", InfoBarSeverity.Success);
+                    ExibirMensagem("Exportação Concluída", $"Relatório gerado em: {Path.GetFileName(dialog.FileName)}", InfoBarSeverity.Success);
                 }
             }
             catch (Exception ex)
@@ -302,18 +371,17 @@ namespace ControleEstoqueWPF.ViewModels
         [RelayCommand]
         public void LimparFormulario()
         {
-            ClearErrors();
             Id = 0;
             Nome = string.Empty;
             Descricao = string.Empty;
-            Preco = 0.01m;
+            Preco = 0.00m;
             QuantidadeEstoque = 0;
             IsEditing = false;
         }
 
         private void ExibirMensagemEstoque(string acao, int quantidade)
         {
-            if (quantidade <= 5) ExibirMensagem(acao, $"Estoque CRÍTICO ({quantidade} un.). Reposição urgente necessária!", InfoBarSeverity.Error);
+            if (quantidade <= 5) ExibirMensagem(acao, $"Estoque CRÍTICO ({quantidade} un.). Reposição urgente!", InfoBarSeverity.Error);
             else if (quantidade <= 10) ExibirMensagem(acao, $"Estoque NORMAL ({quantidade} un.). Operação regular.", InfoBarSeverity.Success);
             else ExibirMensagem(acao, $"Estoque EXCEDENTE ({quantidade} un.). Capacidade máxima atingida.", InfoBarSeverity.Warning);
         }

@@ -7,26 +7,18 @@
         xmlns:converters="clr-namespace:ControleEstoqueWPF.Converters"
         mc:Ignorable="d"
         Title="Controle de Estoque &amp; Produtos" 
-        Height="850" Width="1180"
+        Height="890" Width="1200"
         WindowStartupLocation="CenterScreen">
 
     <Window.Resources>
         <converters:EstoqueBadgeConverter x:Key="EstoqueBadgeConverter"/>
         <converters:EstoqueColorConverter x:Key="EstoqueColorConverter"/>
-
-        <Style TargetType="ui:TextBox" BasedOn="{StaticResource {x:Type ui:TextBox}}">
-            <Style.Triggers>
-                <Trigger Property="Validation.HasError" Value="True">
-                    <Setter Property="BorderBrush" Value="#E81123"/>
-                    <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=(Validation.Errors)[0].ErrorContent}"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
     </Window.Resources>
 
     <Grid>
-        <Grid Margin="24">
+        <Grid Margin="20">
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -34,17 +26,56 @@
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
 
-            <!-- 1. Alerta de Notificação / Feedback -->
-            <ui:InfoBar Grid.Row="0" IsOpen="{Binding IsInfoBarOpen, Mode=TwoWay}" Title="{Binding InfoBarTitle}" Message="{Binding InfoBarMessage}" Severity="{Binding InfoBarSeverity}" Margin="0,0,0,16" />
+            <ui:InfoBar Grid.Row="0" 
+                        IsOpen="{Binding IsInfoBarOpen, Mode=TwoWay}" 
+                        Title="{Binding InfoBarTitle}" 
+                        Message="{Binding InfoBarMessage}" 
+                        Severity="{Binding InfoBarSeverity}" 
+                        Margin="0,0,0,12" />
 
-            <!-- 2. Cabeçalho Principal -->
-            <StackPanel Grid.Row="1" Margin="0,0,0,16">
-                <ui:TextBlock Text="📦 Gestão de Estoque &amp; Produtos" FontTypography="Title" />
-                <ui:TextBlock Text="Monitore níveis críticos, realize cadastros e filtre os itens em tempo real." FontTypography="Body" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+            <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                <ui:TextBlock Text="📦 Gestão Integrada de Estoque &amp; Inventário" FontTypography="Title" />
+                <ui:TextBlock Text="Painel em tempo real com controle de rupturas, métricas financeiras e fluxo operacional." FontTypography="Body" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
             </StackPanel>
 
-            <!-- 3. Formulário de Cadastro / Edição -->
-            <ui:Card Grid.Row="2" Margin="0,0,0,16" Padding="16">
+            <Grid Grid.Row="2" Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <ui:Card Grid.Column="0" Margin="0,0,8,0" Padding="12">
+                    <StackPanel>
+                        <ui:TextBlock Text="Patrimônio em Estoque" FontTypography="Caption" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <ui:TextBlock Text="{Binding ValorTotalEstoque, StringFormat=C2}" FontTypography="Subtitle" FontWeight="Bold" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </ui:Card>
+
+                <ui:Card Grid.Column="1" Margin="0,0,8,0" Padding="12">
+                    <StackPanel>
+                        <ui:TextBlock Text="Total de Unidades Físicas" FontTypography="Caption" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <ui:TextBlock Text="{Binding QuantidadeTotalItens, StringFormat='{}{0} un.'}" FontTypography="Subtitle" FontWeight="Bold" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </ui:Card>
+
+                <ui:Card Grid.Column="2" Margin="0,0,8,0" Padding="12">
+                    <StackPanel>
+                        <ui:TextBlock Text="Preço Médio do Catálogo" FontTypography="Caption" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <ui:TextBlock Text="{Binding PrecoMedioUnitario, StringFormat=C2}" FontTypography="Subtitle" FontWeight="Bold" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </ui:Card>
+
+                <ui:Card Grid.Column="3" Padding="12">
+                    <StackPanel>
+                        <ui:TextBlock Text="Alertas de Reposição" FontTypography="Caption" Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        <ui:TextBlock Text="{Binding TotalCriticos, StringFormat='{}{0} itens críticos'}" FontTypography="Subtitle" FontWeight="Bold" Foreground="#DC3545" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </ui:Card>
+            </Grid>
+
+            <ui:Card Grid.Row="3" Margin="0,0,0,16" Padding="14">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -57,22 +88,22 @@
                         <ColumnDefinition Width="1*"/>
                     </Grid.ColumnDefinitions>
 
-                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,12">
+                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,10,10">
                         <ui:TextBlock Text="Nome do Produto *" FontTypography="BodyStrong" Margin="0,0,0,4"/>
-                        <ui:TextBox Text="{Binding Nome, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" PlaceholderText="Ex: Memória RAM DDR4 8GB" />
+                        <ui:TextBox Text="{Binding Nome, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Ex: Memória RAM DDR4 8GB" />
                     </StackPanel>
 
-                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,12,12">
+                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,10,10">
                         <ui:TextBlock Text="Preço Unitário (R$) *" FontTypography="BodyStrong" Margin="0,0,0,4"/>
-                        <ui:TextBox Text="{Binding Preco, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True, StringFormat={}{0:N2}}" PlaceholderText="0.00" />
+                        <ui:TextBox Text="{Binding Preco, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="0.00" />
                     </StackPanel>
 
-                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,12">
+                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,10">
                         <ui:TextBlock Text="Quantidade em Estoque *" FontTypography="BodyStrong" Margin="0,0,0,4"/>
-                        <ui:TextBox Text="{Binding QuantidadeEstoque, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" PlaceholderText="0" />
+                        <ui:TextBox Text="{Binding QuantidadeEstoque, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="0" />
                     </StackPanel>
 
-                    <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0,0,0,16">
+                    <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Margin="0,0,0,12">
                         <ui:TextBlock Text="Descrição Detalhada" FontTypography="BodyStrong" Margin="0,0,0,4"/>
                         <ui:TextBox Text="{Binding Descricao, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Especificações adicionais do produto..." />
                     </StackPanel>
@@ -84,10 +115,9 @@
                 </Grid>
             </ui:Card>
 
-            <!-- 4. Barra de Pesquisa, Filtros e Exportação -->
-            <Grid Grid.Row="3" Margin="0,0,0,12">
+            <Grid Grid.Row="4" Margin="0,0,0,10">
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="300"/>
+                    <ColumnDefinition Width="280"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
@@ -98,24 +128,34 @@
                     <ui:Button Content="{Binding TotalCriticos, StringFormat='Críticos ({0})'}" Command="{Binding FiltrarPorStatusCommand}" CommandParameter="Critico" Appearance="Danger" Margin="0,0,6,0"/>
                     <ui:Button Content="{Binding TotalNormais, StringFormat='Normais ({0})'}" Command="{Binding FiltrarPorStatusCommand}" CommandParameter="Normal" Appearance="Success" Margin="0,0,6,0"/>
                     <ui:Button Content="{Binding TotalExcedentes, StringFormat='Excedentes ({0})'}" Command="{Binding FiltrarPorStatusCommand}" CommandParameter="Excedente" Appearance="Caution" Margin="0,0,12,0"/>
-                    
-                    <!-- Botão Exportar CSV -->
-                    <ui:Button Content="Exportar CSV" 
-                               Command="{Binding ExportarCsvCommand}" 
-                               Appearance="Secondary" 
-                               Icon="{ui:SymbolIcon Symbol=DocumentTableSearch24}"/>
+                    <ui:Button Content="Exportar CSV" Command="{Binding ExportarCsvCommand}" Appearance="Secondary" Icon="{ui:SymbolIcon Symbol=DocumentTableSearch24}"/>
                 </StackPanel>
             </Grid>
 
-            <!-- 5. Tabela de Produtos -->
-            <ui:Card Grid.Row="4" Padding="0">
+            <ui:Card Grid.Row="5" Padding="0">
                 <DataGrid ItemsSource="{Binding Produtos}" SelectedItem="{Binding ProdutoSelecionado}" AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="Column" GridLinesVisibility="Horizontal" BorderThickness="0">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60"/>
+                        <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50"/>
                         <DataGridTextColumn Header="Produto" Binding="{Binding Nome}" Width="2*"/>
-                        <DataGridTextColumn Header="Preço" Binding="{Binding Preco, StringFormat=C2}" Width="120"/>
-                        <DataGridTextColumn Header="Estoque" Binding="{Binding QuantidadeEstoque}" Width="90"/>
-                        <DataGridTemplateColumn Header="Status do Estoque" Width="170">
+                        <DataGridTextColumn Header="Preço" Binding="{Binding Preco, StringFormat=C2}" Width="110"/>
+                        
+                        <DataGridTemplateColumn Header="Estoque" Width="140">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <ui:Button Content="-" Width="24" Height="24" Padding="0" Appearance="Secondary"
+                                                   Command="{Binding DataContext.DecrementarEstoqueCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                   CommandParameter="{Binding}" Margin="0,0,6,0"/>
+                                        <TextBlock Text="{Binding QuantidadeEstoque}" Width="30" TextAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                        <ui:Button Content="+" Width="24" Height="24" Padding="0" Appearance="Secondary"
+                                                   Command="{Binding DataContext.IncrementarEstoqueCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                   CommandParameter="{Binding}" Margin="6,0,0,0"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <DataGridTemplateColumn Header="Status do Estoque" Width="160">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Border Background="{Binding QuantidadeEstoque, Converter={StaticResource EstoqueColorConverter}}" CornerRadius="4" Padding="8,3" HorizontalAlignment="Left" Margin="4,2">
@@ -124,7 +164,8 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Ações" Width="140">
+
+                        <DataGridTemplateColumn Header="Ações" Width="120">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
@@ -139,7 +180,6 @@
             </ui:Card>
         </Grid>
 
-        <!-- Host do Dialog Modal -->
         <ContentPresenter x:Name="RootContentDialogPresenter" />
     </Grid>
 </ui:FluentWindow>
