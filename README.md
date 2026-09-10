@@ -1,4 +1,4 @@
-#Sistema de Controle de Estoque
+# Sistema de Controle de Estoque
 
 Aplicação desktop moderna para gerenciamento, controle financeiro e monitoramento de inventário em tempo real, desenvolvida em **C# / .NET 8** utilizando **WPF-UI**, arquitetura **MVVM** e banco de dados **PostgreSQL** com **Entity Framework Core**.
 
