@@ -1,28 +1,22 @@
 # Sistema de Controle de Estoque
 
-Aplicação desktop moderna para gerenciamento, controle financeiro e monitoramento de inventário em tempo real, desenvolvida em **C# / .NET 8** utilizando **WPF-UI**, arquitetura **MVVM** e banco de dados **PostgreSQL** com **Entity Framework Core**.
-
----
+Aplicação desktop para gerenciamento e controle de estoque, desenvolvida em **C# / .NET 8**, utilizando **WPF-UI**, arquitetura **MVVM** e **PostgreSQL** com **Entity Framework Core**.
 
 ## 🚀 Funcionalidades
 
 - **Dashboard de KPIs:** Visão consolidada de métricas financeiras, valor total do inventário e indicadores de desempenho.
-- **Gestão de Produtos (CRUD):** Cadastro completo, edição, listagem e remoção de produtos, categorias e fornecedores.
-- **Alertas Visuais Inteligentes:** Sinalização dinâmica de itens com estoque baixo ou abaixo do limite mínimo de segurança.
-- **Ajustes Rápidos de Inventário:** Entradas e saídas operacionais ágeis com persistência imediata no banco de dados.
-- **Exportação de Relatórios:** Geração e exportação dos dados de estoque em formato CSV.
-
----
+- **Gestão de Produtos (CRUD):** Cadastro, edição, listagem e remoção de produtos, categorias e fornecedores.
+- **Alertas de Estoque:** Sinalização de itens com estoque baixo ou abaixo do limite mínimo.
+- **Movimentação de Inventário:** Registro de entradas e saídas de estoque.
+- **Exportação de Relatórios:** Exportação dos dados de estoque em formato CSV.
 
 ## 🛠️ Tecnologias Utilizadas
 
 - **Plataforma:** .NET 8 (C#)
-- **Interface Gráfica:** WPF com biblioteca de componentes [WPF-UI](https://github.com/lepoco/wpfui) (Fluent Design)
-- **Padrão de Arquitetura:** MVVM (Model-View-ViewModel)
+- **Interface Gráfica:** WPF com [WPF-UI](https://github.com/lepoco/wpfui)
+- **Arquitetura:** MVVM
 - **ORM:** Entity Framework Core
 - **Banco de Dados:** PostgreSQL
-
----
 
 ## 📂 Estrutura do Projeto
 
@@ -30,32 +24,36 @@ Aplicação desktop moderna para gerenciamento, controle financeiro e monitorame
 ├── Data/
 │   ├── Context/          # DbContext do Entity Framework Core
 │   └── Migrations/       # Histórico de migrações do banco de dados
-├── Models/               # Entidades de domínio (Produto, Categoria, Movimentação)
-├── Services/             # Regras de negócio, serviços de exportação CSV e cálculos
-├── ViewModels/           # Lógica de apresentação, comandos e observáveis MVVM
+├── Models/               # Entidades de domínio
+├── Services/             # Regras de negócio e serviços
+├── ViewModels/           # Lógica de apresentação e comandos MVVM
 ├── Views/                # Telas, janelas e controles XAML
-├── appsettings.json      # Configurações da aplicação e connection strings
-└── App.xaml              # Inicialização e injeção de dependências
+├── appsettings.json      # Configurações da aplicação
+└── App.xaml              # Inicialização da aplicação
 ```
-
----
 
 ## ⚙️ Pré-requisitos e Execução
 
 ### Pré-requisitos
+
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) instalado.
 - Servidor [PostgreSQL](https://www.postgresql.org/) ativo.
 
 ### Passo a Passo
 
-1. **Clonar o repositório:**
+1. **Clone o repositório:**
+
    ```bash
-   git clone https://github.com/seu-usuario/sistema-estoque.git
+   git clone <URL_DO_REPOSITORIO>
    cd sistema-estoque
    ```
 
-2. **Configurar a conexão com o banco:**
-   No arquivo `appsettings.json`, ajuste a string de conexão:
+2. **Configure a conexão com o banco:**
+
+   No arquivo `appsettings.json`, configure a string de conexão do PostgreSQL.
+
+   Exemplo:
+
    ```json
    {
      "ConnectionStrings": {
@@ -64,17 +62,17 @@ Aplicação desktop moderna para gerenciamento, controle financeiro e monitorame
    }
    ```
 
-3. **Executar as migrações do Entity Framework:**
+3. **Execute as migrações do Entity Framework:**
+
    ```bash
    dotnet ef database update
    ```
 
-4. **Compilar e executar o projeto:**
+4. **Compile e execute o projeto:**
+
    ```bash
    dotnet run
    ```
-
----
 
 ## 📄 Licença
 
