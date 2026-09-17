@@ -1,14 +1,21 @@
-# Sistema de Controle de Estoque
+# Gestão Integrada de Estoque & Inventário
 
-Aplicação desktop para gerenciamento e controle de estoque, desenvolvida em **C# / .NET 8**, utilizando **WPF-UI**, arquitetura **MVVM** e **PostgreSQL** com **Entity Framework Core**.
+> Aplicação desktop para gerenciamento e controle de estoque desenvolvida em **C# / .NET 8**, utilizando **WPF-UI**, arquitetura **MVVM** e **PostgreSQL**.
 
-## 🚀 Funcionalidades
+<p align="center">
+  <img src="assets/Estoque.gif" alt="Demonstração do Sistema" width="100%">
+</p>
 
-- **Dashboard de KPIs:** Visão consolidada de métricas financeiras, valor total do inventário e indicadores de desempenho.
-- **Gestão de Produtos (CRUD):** Cadastro, edição, listagem e remoção de produtos, categorias e fornecedores.
-- **Alertas de Estoque:** Sinalização de itens com estoque baixo ou abaixo do limite mínimo.
-- **Movimentação de Inventário:** Registro de entradas e saídas de estoque.
-- **Exportação de Relatórios:** Exportação dos dados de estoque em formato CSV.
+---
+
+## 🚀 Funcionalidades Principais
+
+- **Dashboard de KPIs em Tempo Real:** Indicadores consolidados de patrimônio total em estoque, unidades físicas, preço médio do catálogo e alertas de reposição.
+- **Busca e Filtragem Reativa:** Pesquisa instantânea por nome ou descrição sem recarregamento de tela.
+- **Categorização Visual por Criticidade:** Filtros rápidos por faixas operacionais com badges de status dinâmicos (crítico, normal e excedente).
+- **Ações Rápidas de Estoque:** Ajuste direto de quantidades na tabela com atualização imediata de status e cores de alerta.
+- **Gestão de Produtos (CRUD):** Formulário integrado para cadastro rápido e edição de itens com validação de campos.
+- **Exportação de Relatórios:** Exportação dos registros do inventário diretamente para formato CSV.
 
 ## 🛠️ Tecnologias Utilizadas
 
@@ -21,6 +28,7 @@ Aplicação desktop para gerenciamento e controle de estoque, desenvolvida em **
 ## 📂 Estrutura do Projeto
 
 ```text
+├── assets/               # Imagens, demonstrações e GIF do README
 ├── Data/
 │   ├── Context/          # DbContext do Entity Framework Core
 │   └── Migrations/       # Histórico de migrações do banco de dados
